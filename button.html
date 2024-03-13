@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .button-container {
+      position: relative;
+    }
+
+    .draggable-button, .square-button {
+      position: absolute;
+      cursor: move;
+    }
+
+    .draggable-button {
+      border-radius: 50%;
+    }
+
+    .resize-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #4CAF50;
+      bottom: 0;
+      right: 0;
+      cursor: se-resize;
+    }
+
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+<div class="button-container">
+  <button onclick="createButton('circle')">Circle Button</button>
+  <button onclick="createButton('square')">Square Button</button>
+</div>
+
+<div id="output">
+  <h2>Button Information:</h2>
+  <ul id="buttonInfoList"></ul>
+</div>
+
+<script>
+  let buttonCount = 0;
+
+  // Function to convert pixels to centimeters
+  function pixelsToCentimeters(pixels) {
+    // Assuming standard DPI of 96
+    const inches = pixels / 96;
+    const centimeters = inches * 2.54;
+    return centimeters;
+  }
+
+  function createButton(type) {
+    buttonCount++;
+    const button = document.createElement('button');
+    button.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} Button ${buttonCount}`;
+    button.className = `${type === 'square' ? 'square-button' : 'draggable-button'}`;
+    makeDraggable(button);
+    makeResizable(button);
+    document.body.appendChild(button);
+
+    // Capture button details and send to the server
+    const buttonInfo = {
+      buttonName: button.innerHTML,
+      buttonShape: type,
+      buttonSizeWidth: button.offsetWidth,
+      buttonSizeHeight: button.offsetHeight,
+      buttonPositionX: button.getBoundingClientRect().left,
+      buttonPositionY: button.getBoundingClientRect().top
+    };
+
+    saveButtonInfo(buttonInfo);
+  }
+
+  function makeDraggable(element) {
+    let offsetX, offsetY;
+
+    element.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      offsetX = e.clientX - element.getBoundingClientRect().left;
+      offsetY = e.clientY - element.getBoundingClientRect().top;
+
+      document.addEventListener('mousemove', dragElement);
+      document.addEventListener('mouseup', () => {
+        document.removeEventListener('mousemove', dragElement);
+        updateButtonInfo(element);
+      });
+    });
+
+    function dragElement(e) {
+      const x = e.clientX - offsetX;
+      const y = e.clientY - offsetY;
+
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    }
+  }
+
+  function makeResizable(element) {
+    let isResizing = false;
+    let originalWidth, originalHeight;
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    element.appendChild(resizeHandle);
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      originalWidth = element.offsetWidth;
+      originalHeight = element.offsetHeight;
+
+      document.addEventListener('mousemove', resizeElement);
+      document.addEventListener('mouseup', () => {
+        isResizing = false;
+        updateButtonInfo(element);
+      });
+    });
+
+    function resizeElement(e) {
+      if (isResizing) {
+        const width = originalWidth + (e.clientX - element.getBoundingClientRect().left);
+        const height = originalHeight + (e.clientY - element.getBoundingClientRect().top);
+
+        element.style.width = `${width}px`;
+        element.style.height = `${height}px`;
+      }
+    }
+  }
+
+  function updateButtonInfo(element) {
+    const buttonInfoList = document.getElementById('buttonInfoList');
+    buttonInfoList.innerHTML = ''; // Clear existing information
+
+    // Update button details dynamically
+    const buttonInfo = {
+      buttonName: element.innerHTML,
+      buttonShape: element.classList.contains('square-button') ? 'square' : 'circle',
+      buttonSizeWidth: element.offsetWidth,
+      buttonSizeHeight: element.offsetHeight,
+      buttonPositionX: pixelsToCentimeters(element.getBoundingClientRect().left),
+      buttonPositionY: pixelsToCentimeters(element.getBoundingClientRect().top)
+    };
+
+    // Display updated information
+    for (const key in buttonInfo) {
+      const listItem = document.createElement('li');
+      listItem.innerHTML = `<strong>${key}:</strong> ${buttonInfo[key]}`;
+      buttonInfoList.appendChild(listItem);
+    }
+  }
+
+  function saveButtonInfo(buttonInfo) {
+    // Send button details to the server using AJAX (fetch)
+    fetch('save_button_info.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(buttonInfo),
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log(data);
+      updateButtonInfo(element);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+</script>
+
+</body>
+</html>

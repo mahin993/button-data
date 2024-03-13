@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .button-container {
+      position: relative;
+    }
+
+    .draggable-button, .square-button {
+      position: absolute;
+      cursor: move;
+      width: 100px; /* Set the width to a fixed value */
+      height: 100px; /* Set the height to a fixed value */
+    }
+
+    .draggable-button {
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="button-container">
+  <button onclick="createButton('circle')">Circle Button</button>
+  <button onclick="createButton('square')">Square Button</button>
+</div>
+
+<script>
+  let buttonCount = 0;
+
+  function createButton(type) {
+    buttonCount++;
+    const button = document.createElement('button');
+    button.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} Button ${buttonCount}`;
+    button.className = `${type === 'square' ? 'square-button' : 'draggable-button'}`;
+    makeDraggable(button);
+    document.body.appendChild(button);
+  }
+
+  function makeDraggable(element) {
+    let offsetX, offsetY;
+
+    element.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      offsetX = e.clientX - element.getBoundingClientRect().left;
+      offsetY = e.clientY - element.getBoundingClientRect().top;
+
+      document.addEventListener('mousemove', dragElement);
+      document.addEventListener('mouseup', () => {
+        document.removeEventListener('mousemove', dragElement);
+      });
+    });
+
+    function dragElement(e) {
+      const x = e.clientX - offsetX;
+      const y = e.clientY - offsetY;
+
+      element.style.left = `${x}px`;
+      element.style.top = `${y}px`;
+    }
+  }
+</script>
+
+</body>
+</html>
